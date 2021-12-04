@@ -1,0 +1,32 @@
+let max-guesses
+    6
+let not-done
+    true
+let guesses
+    0
+
+while loop
+      not-done
+      while loop
+            < guesses
+              max-guesses
+            do let goal
+                   rand 1
+                        100
+               writeln stdout
+                       "What is your guess: "
+               let guess
+                   readln stdin
+               if = guess
+                    goal
+                  do writeln stdout
+                          "Correct! The number was "
+                          goal
+                  let win
+                      true
+               do if < guess
+                       goal
+                     do writeln stdout
+                                "The number is higher."
+                     do writeln stdout
+                                "The number is lower."

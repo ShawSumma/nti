@@ -44,7 +44,7 @@ const splint = (line) => {
 
 const parse = (src) => {
     const lines = src.split('\n');
-    let calls = [new Form('main')];
+    let calls = [new Form('call', new Ident('do'))];
     let lno = 1;
     for (const line of lines) {
         let trimmed = line.trimLeft();

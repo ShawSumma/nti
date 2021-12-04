@@ -1,65 +1,70 @@
-const {Form, Value, Ident} = require('./ast.js');
+const { Form, Value, Ident } = require('./ast.js');
 const rt = require('./rt.js');
 const named = require('./named.js');
 
 const indent = (src) => {
-    return src.split('\n').map(x => `     ${x}`).join('\n');
+    return src.split('\n').map(x => `    ${x}`).join('\n');
 };
 
-const conv = (node) => {
+const call = Symbol('opcode.call');
+const pop = Symbol('opcode.call');
+const store = Symbol('opcode.store');
+const load = Symbol('opcode.load');
+const val = Symbol('opcode.val');
+const dup = Symbol('opcode.dup');
+const index = Symbol('opcode.index');
+const swap = Symbol('opcode.index');
+
+let nnames = 0;
+
+const genname = () => {
+    nnames += 1;
+    return `r${nnames}`;
+}
+
+const conv = (node, cont, sym) => {
+    let k = (`{\n${indent(`return () => ${cont};`)}\n}`);
     if (node instanceof Form) {
         if (node.type === 'call') {
-            let func = node.args[0].name;
-            let self = conv(node.args[1])
-            let args = node.args.slice(2).map(conv);
-            return `${self}['${func}'](${args.map(x => `() => ${x}`).join(', ')})`;
-        }
-        if (node.type === 'if') {
-            if (node.args.length == 2) {
-                let cond = conv(node.args[0]);
-                let iftrue = conv(node.args[1]);
-                return `${cond} ? ${iftrue} : null`;
-            } else if (node.args.length == 3) {
-                let cond = conv(node.args[0]);
-                let iftrue = conv(node.args[1]);
-                let iffalse = conv(node.args[2]);
-                return `${cond} ? ${iftrue} : ${iffalse}`;
-            } else {
-                throw new Error(`wrong argc for if: ${node.args.length}`);
+            let n = 0;
+            let args = [];
+            for (let arg of node.args) {
+                args.push(genname());
             }
+            let argstr = args.slice(1).join(', ');
+            k = `(${args[0]}((${sym}) => ${k},${argstr}))`
+            for (let arg of node.args.reverse()) {
+                k = conv(arg, k, args.pop());
+                n += 1;
+            }
+            return k;
         }
         if (node.type === 'let') {
-            let setto = conv(node.args[0]);
-            let value = conv(node.args[1]);
-            return `(${setto} = ${value})`;
-        }
-        if (node.type === 'main') {
-            let args = [...node.args];
-            let ret = conv(args.pop());
-            let stmts = args.map(conv);
-            let getres;
-            if (args.length !== 0) {
-                let body = indent(stmts.join(';\n'));
-                let end = indent(`return ${ret}`);
-                getres = `let main = (() => {\n${body}\n${end};\n})`;
-            } else {
-                getres = `let main = (() => ${ret})`;
-            }
-            return `${rt}\n${getres}\nmain();`
+            k = `(${args[0]}((${sym}) => ${k},${argstr}))`;
+            k = conv(node.args[1], k, genname());
+            return k;
         }
         throw new Error(`unhandled node type: ${node.type}`);
     }
     if (node instanceof Ident) {
-        return named(node.name);
+        if (node.name === 'cc') {
+            return `((cc) => {cc(cc)})((${sym}) => ${k})`;
+        }
+        return `((${sym}) => ${k})(${named(node.name)})`;
     }
     if (node instanceof Value) {
-        if (typeof(node.value) === 'number') {
-            return `$number_literal(${node.value})`
+        if (typeof (node.value) === 'number') {
+            return `((${sym}) => ${k})(${node.value})`;
         } else {
-            return `$string_literal('${node.value}')`;
+            return `((${sym}) => ${k})('${node.value}')`;
         }
     }
     throw new Error(`unhandled node: ${node}`);
 };
 
-module.exports = conv;
+module.exports = (ast) => {
+    let expr = conv(ast, '{}', 'end');
+    let val = `let cur = ${expr};\n\n`;
+    val += 'let todo = [cur]; while (todo.length !== 0) { let next = todo.shift()(); if (Array.isArray(next)) { todo.push(...next); } else if (next != null) { todo.push(next); } }'
+    return rt + val;
+};
