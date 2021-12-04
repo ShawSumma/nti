@@ -1,107 +1,107 @@
-/* Form {
-  type: 'main',
-  args: [
-    Form { type: 'call', args: [Array] },
-    Form { type: 'call', args: [Array] }
-  ]
-} */
-/* Form {
-  type: 'call',
-  args: [ Ident { name: 'print' }, Form { type: 'call', args: [Array] } ]
-} */
-/* Ident { name: 'print' } */
-/* Form {
-  type: 'call',
-  args: [
-    Ident { name: '+' },
-    Form { type: 'call', args: [Array] },
-    Form { type: 'call', args: [Array] }
-  ]
-} */
-/* Ident { name: '+' } */
-/* Form {
-  type: 'call',
-  args: [ Ident { name: '*' }, Value { value: 1 }, Value { value: 2 } ]
-} */
-/* Ident { name: '*' } */
-/* Value { value: 1 } */
-/* Value { value: 2 } */
-/* Form {
-  type: 'call',
-  args: [ Ident { name: '*' }, Value { value: 3 }, Value { value: 4 } ]
-} */
-/* Ident { name: '*' } */
-/* Value { value: 3 } */
-/* Value { value: 4 } */
-/* Form {
-  type: 'call',
-  args: [ Ident { name: 'print' }, Form { type: 'call', args: [Array] } ]
-} */
-/* Ident { name: 'print' } */
-/* Form {
-  type: 'call',
-  args: [
-    Ident { name: '+' },
-    Value { value: 1 },
-    Form { type: 'call', args: [Array] },
-    Value { value: 4 }
-  ]
-} */
-/* Ident { name: '+' } */
-/* Value { value: 1 } */
-/* Form {
-  type: 'call',
-  args: [ Ident { name: '*' }, Value { value: 2 }, Value { value: 3 } ]
-} */
-/* Ident { name: '*' } */
-/* Value { value: 2 } */
-/* Value { value: 3 } */
-/* Value { value: 4 } */
 
-const print = (...args) => {
-    console.log(...args);
+const load = Symbol('store');
+const arg = (v) => v();
+
+const _true = {
+    'if': (...args) => {
+        return arg(args[0]);
+    },
+
+    'not': () => {
+        return _false;
+    },
 };
 
-const $plus$ = (...nums) => {
-    let ret = 0;
-    for (let i of nums) {
-        ret += i;
-    }
-    return ret;
+const _false = {
+    'if': (...args) => {
+        return arg(args[1]);
+    },
+
+    'not': () => {
+        return _true;
+    },
 };
 
-const $dash$ = (...nums) => {
-    if (nums.length == 1) {
-        return -nums[0];
-    }
-    let ret = nums[0];
-    for (let i of nums) {
-        ret -= i;
-    }
-    return ret;
+const $empty_literal = () => {
+    return {
+        'show': () => {
+            console.log('none');
+            return $empty_literal();
+        },
+    };
 };
 
-const $star$ = (...nums) => {
-    let ret = 1;
-    for (let i of nums) {
-        ret *= i;
-    }
-    return ret;
-}
+const $number_literal = (num) => {
+    return  {
+        [load]: num,
+        'show': () => {
+            console.log(num);
+            return $empty_literal();
+        },
+        '+': (...args) => {
+            let ret = num;
+            for (const val of args) {
+                ret += arg(val)[load];
+            }
+            return $number_literal(ret);
+        },
+        '*': (...args) => {
+            let ret = num;
+            for (const val of args) {
+                ret *= arg(val)[load];
+            }
+            return $number_literal(ret);
+        },
+        '-': (...args) => {
+            if (args.length === 0) {
+                return $number_literal(0-num);
+            }
+            let ret = num;
+            for (const val of args) {
+                ret -= arg(val)[load];
+            }
+            return $number_literal(ret);
+        },
+        '/': (...args) => {
+            if (args.length === 0) {
+                return $number_literal(1/num);
+            }
+            let ret = num;
+            for (const val of args) {
+                ret /= arg(val)[load];
+            }
+            return $number_literal(ret);
+        },
+        '=': (...args) => {
+            if (num === arg(args[0])[load]) {
+                return _true;
+            } else {
+                return _false;
+            }
+        },
+    };
+};
 
-const $slash$ = (...nums) => {
-    if (nums.length == 1) {
-        return 1/nums[0];
-    }
-    let ret = nums[0];
-    for (let i of nums) {
-        ret -= i;
-    }
-    return ret;
-}
+const $string_literal = (str) => {
+    return {
+        [load]: str,
+        'show': (...args) => {
+            console.log(str);
+            return $empty_literal();
+        },
+        'concat': (...args) => {
+            let ret = str;
+            for (const str of args) {
+                ret += arg(str)(load);
+            }
+            return $string_literal(ret);
+        },
+    };
+};
+
 
 let main = (() => {
-     print($plus$(1, $star$(2, 3), 4))
-     return print($plus$($star$(1, 2), $star$(3, 4)));
+     (_x = $number_literal(1)['='](() => $number_literal(2))['if'](() => $number_literal(10), () => $number_literal(20)))
+     return _x['show']();
 })
 main();

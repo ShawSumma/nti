@@ -7,12 +7,31 @@ const indent = (src) => {
 };
 
 const conv = (node) => {
-    console.log('/*', node, '*/');
     if (node instanceof Form) {
         if (node.type === 'call') {
-            let func = conv(node.args[0]);
-            let args = node.args.slice(1).map(conv);
-            return `${func}(${args.join(', ')})`;
+            let func = node.args[0].name;
+            let self = conv(node.args[1])
+            let args = node.args.slice(2).map(conv);
+            return `${self}['${func}'](${args.map(x => `() => ${x}`).join(', ')})`;
+        }
+        if (node.type === 'if') {
+            if (node.args.length == 2) {
+                let cond = conv(node.args[0]);
+                let iftrue = conv(node.args[1]);
+                return `${cond} ? ${iftrue} : null`;
+            } else if (node.args.length == 3) {
+                let cond = conv(node.args[0]);
+                let iftrue = conv(node.args[1]);
+                let iffalse = conv(node.args[2]);
+                return `${cond} ? ${iftrue} : ${iffalse}`;
+            } else {
+                throw new Error(`wrong argc for if: ${node.args.length}`);
+            }
+        }
+        if (node.type === 'let') {
+            let setto = conv(node.args[0]);
+            let value = conv(node.args[1]);
+            return `(${setto} = ${value})`;
         }
         if (node.type === 'main') {
             let args = [...node.args];
@@ -31,20 +50,14 @@ const conv = (node) => {
         throw new Error(`unhandled node type: ${node.type}`);
     }
     if (node instanceof Ident) {
-        let ret = '';
-        for (const chr of node.name) {
-            if (/[a-zA-Z0-9_]/.test(chr)) {
-                ret += chr;
-            } else if (chr in named) {
-                ret += '$' + named[chr] + '$';
-            } else {
-                ret += '$' + String(String.fromCharCode(chr)) + '$';
-            }
-        }
-        return ret;
+        return named(node.name);
     }
     if (node instanceof Value) {
-        return `${node.value}`;
+        if (typeof(node.value) === 'number') {
+            return `$number_literal(${node.value})`
+        } else {
+            return `$string_literal('${node.value}')`;
+        }
     }
     throw new Error(`unhandled node: ${node}`);
 };

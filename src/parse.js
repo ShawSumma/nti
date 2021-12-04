@@ -1,4 +1,19 @@
-const {Form, Value, Ident} = require('./ast.js');
+const {Node, Form, Value, Ident} = require('./ast.js');
+
+let forms = ['let'];
+
+const parseWord = (word) => {
+    if (forms.indexOf(word) !== -1) {
+        return word;
+    }
+    if (!isNaN(word)) {
+        return new Value(Number(word));
+    }
+    if (word[0] === '.') {
+        return new Value(word.slice(1));
+    }
+    return new Ident(word);
+};
 
 const splint = (line) => {
     let ret = [];
@@ -7,9 +22,13 @@ const splint = (line) => {
     let start = 0;
     for (const chr of line) {
         count += 1;
+        if (chr == ':') {
+            ret.push([start, new Value(line.slice(count))]);
+            break;
+        }
         if (chr === ' ') {
             if (cur !== '') {
-                ret.push([start, cur]);
+                ret.push([start, parseWord(cur)]);
             }
             cur = '';
             start = count;
@@ -18,16 +37,9 @@ const splint = (line) => {
         }
     }
     if (cur !== '') {
-        ret.push([start, cur]);
+        ret.push([start, parseWord(cur)]);
     }
     return ret;
-};
-
-const parseWord = (word) => {
-    if (/-?[0-9]+/.test(word)) {
-        return new Value(Number(word));
-    }
-    return new Ident(word);
 };
 
 const parse = (src) => {
@@ -41,14 +53,14 @@ const parse = (src) => {
         if (words.length === 0) {
             continue;
         }
-        while (calls.length > count + 2) {
-            calls.pop();
-        }
-        let [last, argStr] = words.pop();
-        let arg = parseWord(argStr);
+        let [last, arg] = words.pop();
         for (const word of words.reverse()) {
             let [indent, src] = word;
-            arg = new Form('call', parseWord(src), arg);
+            if (src instanceof Node) {
+                arg = new Form('call', src, arg);
+            } else {
+                arg = new Form(src, arg);
+            }
             calls[last] = arg;
             last = indent;
         }
