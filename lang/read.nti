@@ -1,0 +1,6 @@
+let fs
+    import :fs/promises
+let read 
+    wrap index fs
+               :readFile
+show read :out.js

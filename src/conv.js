@@ -6,15 +6,6 @@ const indent = (src) => {
     return src.split('\n').map(x => `    ${x}`).join('\n');
 };
 
-const call = Symbol('opcode.call');
-const pop = Symbol('opcode.call');
-const store = Symbol('opcode.store');
-const load = Symbol('opcode.load');
-const val = Symbol('opcode.val');
-const dup = Symbol('opcode.dup');
-const index = Symbol('opcode.index');
-const swap = Symbol('opcode.index');
-
 let nnames = 0;
 
 const genname = () => {
@@ -23,9 +14,9 @@ const genname = () => {
 }
 
 const conv = (node, cont, sym) => {
-    let k = (`{\n${indent(`return () => ${cont};`)}\n}`);
     if (node instanceof Form) {
         if (node.type === 'call') {
+            let k = (`{\n${indent(`return () => ${cont};`)}\n}`);
             let n = 0;
             let args = [];
             for (let arg of node.args) {
@@ -40,19 +31,22 @@ const conv = (node, cont, sym) => {
             return k;
         }
         if (node.type === 'let') {
-            k = `(${args[0]}((${sym}) => ${k},${argstr}))`;
-            k = conv(node.args[1], k, genname());
+            let name = named(node.args[0].name);
+            let k = `{\n${indent(`let ${name} = ${sym};\nreturn () => ${cont};`)}\n}`;
+            k = conv(node.args[1], k, sym);
             return k;
         }
         throw new Error(`unhandled node type: ${node.type}`);
     }
     if (node instanceof Ident) {
+        let k = (`{\n${indent(`return () => ${cont};`)}\n}`);
         if (node.name === 'cc') {
             return `((cc) => {cc(cc)})((${sym}) => ${k})`;
         }
         return `((${sym}) => ${k})(${named(node.name)})`;
     }
     if (node instanceof Value) {
+        let k = (`{\n${indent(`return () => ${cont};`)}\n}`);
         if (typeof (node.value) === 'number') {
             return `((${sym}) => ${k})(${node.value})`;
         } else {
@@ -64,7 +58,18 @@ const conv = (node, cont, sym) => {
 
 module.exports = (ast) => {
     let expr = conv(ast, '{}', 'end');
-    let val = `let cur = ${expr};\n\n`;
-    val += 'let todo = [cur]; while (todo.length !== 0) { let next = todo.shift()(); if (Array.isArray(next)) { todo.push(...next); } else if (next != null) { todo.push(next); } }'
+    let val = `let main = ${expr};\n`;
+    val += `
+(async(cur) => {
+    let todo = [cur];
+    while (todo.length !== 0) {
+        let next = await todo.shift()();
+        if (Array.isArray(next)) { 
+            todo.push(...next);
+        } else if (next != null) {
+            todo.push(next);
+        }
+    }
+})(main)`;
     return rt + val;
 };
