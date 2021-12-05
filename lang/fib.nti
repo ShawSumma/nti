@@ -7,5 +7,4 @@ let fib
                    2
              fib - n
                    1
-fork 5
 show fib 28

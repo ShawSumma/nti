@@ -23,14 +23,25 @@ const Form = class extends Node {
     }
 };
 
-const Value = class extends Node {
+const String = class extends Node {
     constructor(val) {
         super();
         this.value = val;
     }
 
     expr() {
-        return `#${String(this.value)}`
+        return `'${this.value}'`
+    }
+};
+
+const Number = class extends Node {
+    constructor(val) {
+        super();
+        this.value = val;
+    }
+
+    expr() {
+        return `#${this.value}`
     }
 };
 
@@ -48,7 +59,8 @@ const Ident = class extends Node {
 module.exports = {
     Node,
     Form,
-    Value,
+    String,
+    Number,
     Ident,
 };
 

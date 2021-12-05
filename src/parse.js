@@ -1,4 +1,4 @@
-const {Node, Form, Value, Ident} = require('./ast.js');
+const {Node, Form, String, Number, Ident} = require('./ast.js');
 
 let forms = ['let', 'fun', 'if'];
 
@@ -6,8 +6,8 @@ const parseWord = (word) => {
     if (forms.indexOf(word) !== -1) {
         return word;
     }
-    if (!isNaN(word)) {
-        return new Value(Number(word));
+    if (!isNaN(word[0])) {
+        return new Number(word);
     }
     let split = word.split('.');
     if (split.length === 1) {
@@ -15,7 +15,7 @@ const parseWord = (word) => {
     }
     let val = new Ident(split.shift());
     for (const ind of split) {
-        val = new Form('call', new Ident('index'), val, new Value(ind));
+        val = new Form('call', new Ident('index'), val, new String(ind));
     }
     return val;
 };
@@ -28,7 +28,7 @@ const splint = (line) => {
     for (const chr of line) {
         count += 1;
         if (chr == ':') {
-            ret.push([start, new Value(line.slice(count))]);
+            ret.push([start, new String(line.slice(count))]);
             break;
         }
         if (chr === ' ') {

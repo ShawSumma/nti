@@ -1,4 +1,5 @@
 
+const _math = require('mathjs');
 
 const _this = globalThis;
 
@@ -14,6 +15,33 @@ const _wrap = (k1, f) => {
     };
 };
 
+const _$plus$ = (k, lhs, rhs) => {
+    return () => lhs.add(k, lhs, rhs);
+}
+
+const _$dash$ = (k, lhs, rhs) => {
+    return () => lhs.sub(k, lhs, rhs);
+}
+
+const _$star$ = (k, lhs, rhs) => {
+    return () => lhs.mul(k, lhs, rhs);
+}
+
+const _$slash$ = (k, lhs, rhs) => {
+    return () => lhs.div(k, lhs, rhs);
+}
+
+const cmp = (f) => (k, lhs, rhs) => {
+    return () => lhs.cmp(v => k(f(v)), lhs, rhs);
+}
+
+const _$eq$ = cmp(x => x.value === 0);
+const _$neq$ = cmp(x => x.value !== 0);
+const _$lt$ = cmp(x => x.value < 0);
+const _$gt$ = cmp(x => x.value > 0);
+const _$lt$$eq$ = cmp(x => x.value <= 0);
+const _$gt$$eq$ = cmp(x => x.value >= 0);
+
 const _if = (k, c, t, f) => {
     if (c) {
         return () => t(k);
@@ -22,157 +50,76 @@ const _if = (k, c, t, f) => {
     }
 };
 
-const _$eq$ = (k, ...args) => {
-    for (let i = 0; i < args.length; i++) {
-        for (let j = i + 1; j < args.length; j++) {
-            if (!(args[i] === args[j])) {
-                return () => k(false);
-            }
+const _show = (k, ...values) => {
+    let args = [];
+    for (let v of values) {
+        if (v.value != null) {
+            args.push(v.value);
+        } else {
+            args.push(v);
         }
     }
-    return () => k(true);
-};
-
-const _$lt$ = (k, ...args) => {
-    for (let i = 0; i < args.length; i++) {
-        for (let j = i + 1; j < args.length; j++) {
-            if (!(args[i] < args[j])) {
-                return () => k(false);
-            }
-        }
-    }
-    return () => k(true);
-};
-
-const _index = (k, v, ind) => {
-    return () => k(v[ind]);
-};
-
-const _$plus$ = (k, ...args) => {
-    let res = args.reduce((x, y) => x + y, 0);
-    return () => k(res);
-};
-
-const _$dash$ = (k, start, ...args) => {
-    if (args.length === 0) {
-        return () => k(-start);
-    } else {
-        let res = args.reduce((x, y) => x - y, start);
-        return () => k(res);
-    }
-};
-
-const _$star$ = (k, ...args) => {
-    let res = args.reduce((x, y) => x * y, 1);
-    return () => k(res);
-};
-
-const _$slash$ = (k, start, ...args) => {
-    if (args.length === 0) {
-        return () => k(1/start);
-    } else {
-        let res = args.reduce((x, y) => x / y, start);
-        return () => k(res);
-    }
-};
-
-const _show = (k, v) => {
-    console.log(v);
+    console.log(...args);
     return () => k(null);
 };
-
-const _fork = (k, n) => {
-    return () => {
-        let ret = [];
-        for (let i = 0; i < n; i++) {
-            ret.push(k(i));
-        }
-        return ret
-    };
-}
 
 const _do = (k, ...args) => {
     return () => k(args.pop());
 };
 
-var _fib = null;
+const num_type = {
+    toString: () => {
+        return String(this.value);
+    },
+    add: (k, lhs, rhs) => {
+        return () => k(_num(_math.add(lhs.value, rhs.value)));
+    },
+    sub: (k, lhs, rhs) => {
+        return () => k(_num(_math.subtract(lhs.value, rhs.value)));
+    },
+    mul: (k, lhs, rhs) => {
+        return () => k(_num(_math.multiply(lhs.value, rhs.value)));
+    },
+    div: (k, lhs, rhs) => {
+        return () => k(_num(_math.divide(lhs.value, rhs.value)));
+    },
+    neg: (k, lhs) => {
+        return () => k(_num(_math.subtract(0, lhs.value)));
+    },
+    inv: (k, lhs) => {
+        return () => k(_num(_math.divide(0, lhs.value)));
+    },
+    cmp: (k, lhs, rhs) => {
+        return () => k(_num(_math.compare(lhs.value, rhs.value)));
+    },
+};
+
+const _num = (n) => {
+    let ret = Object.create(num_type);
+    ret.value = n;
+    return ret;
+}
+
+const unum = (n, u) => _num(_math.unit(_math.bignumber(n), u))
+const num = (n) => _num(_math.bignumber(n));
 let main = ((r1) => {
-    return () => ((r2) => {
-        return () => {
-            _fib = r2;
-            return () => ((r9) => {
-                return () => ((r10) => {
-                    return () => (r9((r3) => {
-                        return () => ((r5) => {
-                            return () => ((r7) => {
-                                return () => ((r8) => {
-                                    return () => (r7((r6) => {
-                                        return () => (r5((r4) => {
-                                            return () => (r1((end) => {
-                                                return () => {};
-                                            },r2, r3, r4));
-                                        },r6));
-                                    },r8));;
-                                })(28);;
-                            })(_fib);;
-                        })(_show);
-                    },r10));;
-                })(5);;
-            })(_fork);;
-        };;
-    })((r11, _n) => {    
-        return ((r13) => {
-            return () => ((r34) => {
-                return () => ((r35) => {
-                    return () => ((r36) => {
-                        return () => (r34((r14) => {
-                            return () => ((r15) => {
-                                return () => ((r16) => {
-                                    return () => (r13((r12) => {
-                                        return () => r11(r12);
-                                    },r14, r15, r16));;
-                                })((r17, ) => {    
-                                    return ((r19) => {
-                                        return () => ((r27) => {
-                                            return () => ((r29) => {
-                                                return () => ((r30) => {
-                                                    return () => ((r31) => {
-                                                        return () => (r29((r28) => {
-                                                            return () => (r27((r20) => {
-                                                                return () => ((r22) => {
-                                                                    return () => ((r24) => {
-                                                                        return () => ((r25) => {
-                                                                            return () => ((r26) => {
-                                                                                return () => (r24((r23) => {
-                                                                                    return () => (r22((r21) => {
-                                                                                        return () => (r19((r18) => {
-                                                                                            return () => r17(r18);
-                                                                                        },r20, r21));
-                                                                                    },r23));
-                                                                                },r25, r26));;
-                                                                            })(1);;
-                                                                        })(_n);;
-                                                                    })(_$dash$);;
-                                                                })(_fib);
-                                                            },r28));
-                                                        },r30, r31));;
-                                                    })(2);;
-                                                })(_n);;
-                                            })(_$dash$);;
-                                        })(_fib);;
-                                    })(_$plus$);
-                                    });;
-                            })((r32, ) => {    
-                                return ((r33) => {
-                                    return () => r32(r33);;
-                                })(_n);
-                                });
-                        },r35, r36));;
-                    })(2);;
-                })(_n);;
-            })(_$lt$);;
-        })(_if);
-        });;
+    return () => ((r3) => {
+        return () => ((r5) => {
+            return () => ((r6) => {
+                return () => ((r7) => {
+                    return () => ((r8) => {
+                        return () => (r5((r4) => {
+                            return () => (r3((r2) => {
+                                return () => (r1((end) => {
+                                    return () => {};
+                                },r2));
+                            },r4));
+                        },r6, r7, r8));;
+                    })(unum('2', 'm'));;
+                })(unum('1', 'm'));;
+            })(unum('1', 'm'));;
+        })(_$lt$$eq$);;
+    })(_show);;
 })(_do);
 
 (async(cur) => {

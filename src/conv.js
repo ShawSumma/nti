@@ -1,4 +1,4 @@
-const { Form, Value, Ident } = require('./ast.js');
+const { Form, String, Number, Ident } = require('./ast.js');
 const rt = require('./rt.js');
 const named = require('./named.js');
 
@@ -76,12 +76,19 @@ const conv = (node, cont, sym, vars) => {
         }
         return `((${sym}) => ${k})(${named(node.name)})`;
     }
-    if (node instanceof Value) {
+    if (node instanceof Number) {
         let k = (`{\n${indent(`return () => ${cont};`)};\n}`);
-        if (typeof (node.value) === 'number') {
-            return `((${sym}) => ${k})(${node.value})`;
+        let n = 0
+        for (let chr of node.value) {
+            if ((chr < '0' || chr > '9') && chr !== '.')  {
+                break;
+            }
+            n += 1;
+        }
+        if (n === node.value.length) {
+            return `((${sym}) => ${k})(num('${node.value}'))`;
         } else {
-            return `((${sym}) => ${k})('${node.value}')`;
+            return `((${sym}) => ${k})(unum('${node.value.slice(0, n)}', '${node.value.slice(n)}'))`;
         }
     }
     throw new Error(`unhandled node: ${node}`);
