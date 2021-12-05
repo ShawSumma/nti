@@ -7,6 +7,8 @@ const reps = {
     '=': 'eq',
     '!': 'exclamation',
     '.': 'dot',
+    '<': 'lt',
+    '>': 'gt',
 };
 
 const named = (name) => {

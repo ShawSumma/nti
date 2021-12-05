@@ -1,0 +1,9 @@
+let line
+    fun m x b
+        + * m
+            x
+          b
+          
+show line 1
+          5
+          2

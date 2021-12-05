@@ -1,0 +1,11 @@
+let fib
+    fun n
+        if < n
+             2
+           n
+           + fib - n
+                   2
+             fib - n
+                   1
+fork 5
+show fib 28
